@@ -124,14 +124,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),  # Faqat asosiy static papka
 ]
 
-# Material Admin uchun qo'shimcha sozlamalar
-MATERIAL_ADMIN_SITE = {
-    "HEADER": "ERP System",
-    "TITLE": "Welcome",
-    "FAVICON": "path/to/favicon",  # Ixtiyoriy
-    "MAIN_BG_COLOR": "#3c8dbc",  # Ixtiyoriy
-    "MAIN_HOVER_COLOR": "#3c8dbc",  # Ixtiyoriy
-}
+
 
 # Media fayllar sozlamalari
 MEDIA_URL = "/media/"
