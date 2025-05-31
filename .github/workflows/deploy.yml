@@ -26,6 +26,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Django tests
+        env:
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
         run: |
           python manage.py test
 
@@ -44,14 +46,38 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to EC2
+      - name: Test SSH connection
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            cd /home/ubuntu/${{ secrets.REPO_NAME }}
-            git pull origin main
-            export DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo SSH connection successful"
+
+      - name: Deploy to EC2
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          REPO_NAME: ${{ secrets.REPO_NAME }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << EOF
+            set -e
+            cd /home/ubuntu/$REPO_NAME
+            git fetch origin main
+            git reset --hard origin/main
+            export DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY
             docker-compose down
             docker-compose up --build -d
             docker-compose exec -T web python manage.py migrate
             docker-compose exec -T web python manage.py collectstatic --noinput
+            echo "Deployment completed successfully"
           EOF
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number || context.runId,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚨 CI/CD pipeline failed! Check the logs.'
+            })

@@ -343,4 +343,3 @@ def user_register(request):
 
     return redirect('/')
 
-print("test CI/CD")
