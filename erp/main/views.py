@@ -342,4 +342,4 @@ def user_register(request):
             return redirect('/')
 
     return redirect('/')
-print("CI/CD test")
+
